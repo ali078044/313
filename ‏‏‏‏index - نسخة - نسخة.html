@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الموارد البشرية V17 - النسخة الكاملة</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background-color: #f1f5f9; 
+            color: #1e293b; 
+        }
+        
+        .hidden { display: none !important; }
+        
+        /* تصميم الجدول الاحترافي */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .grid-table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        
+        .grid-table th { 
+            background: #1e293b; 
+            color: white; 
+            padding: 16px; 
+            font-size: 0.9rem; 
+            white-space: nowrap; 
+            text-align: center;
+        }
+        
+        .grid-table td { 
+            padding: 12px; 
+            border-bottom: 1px solid #e2e8f0; 
+            vertical-align: middle; 
+            font-size: 0.95rem; 
+        }
+        
+        .grid-table tr:last-child td { border-bottom: none; }
+        .grid-table tr:hover td { background-color: #f8fafc; }
+        
+        /* حقول الإدخال */
+        .input-field { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 8px; 
+            outline: none; 
+            transition: all 0.2s; 
+            background-color: #fff;
+        }
+        
+        .input-field:focus { 
+            border-color: #2563eb; 
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); 
+        }
+        
+        .input-field.error { 
+            border-color: #ef4444; 
+            background-color: #fef2f2; 
+        }
+        
+        .input-field:disabled {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* الأزرار */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        
+        .btn-primary { background: #2563eb; color: white; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); }
+        .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); }
+        
+        .btn-secondary { background: #f8fafc; border: 1px solid #cbd5e1; color: #475569; }
+        .btn-secondary:hover { background: #e2e8f0; }
+        
+        .btn-danger { background: #fee2e2; color: #ef4444; }
+        .btn-danger:hover { background: #fecaca; }
+
+        /* التبويبات */
+        .tab-btn { 
+            padding: 12px 24px; 
+            font-weight: 700; 
+            color: #64748b; 
+            border-bottom: 3px solid transparent; 
+            transition: 0.3s; 
+        }
+        .tab-btn.active { 
+            color: #2563eb; 
+            border-color: #2563eb; 
+            background: #eff6ff; 
+            border-radius: 8px 8px 0 0; 
+        }
+
+        /* التحميل */
+        .loader { 
+            width: 24px; height: 24px; 
+            border: 3px solid #e2e8f0; 
+            border-top-color: #2563eb; 
+            border-radius: 50%; 
+            animation: spin 1s linear infinite; 
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* شارات الحالة */
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .status-pending { background: #fef3c7; color: #b45309; }
+        .status-success { background: #dcfce7; color: #15803d; }
+        .status-danger { background: #fee2e2; color: #b91c1c; }
+    </style>
+</head>
+<body class="flex flex-col items-center min-h-screen p-4">
+
+    <div class="w-full max-w-[98%] bg-white rounded-3xl shadow-xl overflow-hidden min-h-[90vh] flex flex-col border border-slate-200">
+        
+        <div class="bg-slate-900 text-white p-6 flex justify-between items-center shadow-lg z-20">
+            <div class="flex items-center gap-5">
+                <div class="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-inner border border-white/10">
+                    <i class="fas fa-cogs text-3xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-2xl tracking-wide">نظام الموارد البشرية <span class="bg-blue-500 text-xs px-3 py-1 rounded-full ml-2 align-middle">V17</span></h1>
+                    <p id="headerSubtitle" class="text-sm text-slate-400 mt-1 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> تسجيل الدخول مطلوب
+                    </p>
+                </div>
+            </div>
+            <button id="logoutBtn" onclick="logout()" class="hidden bg-slate-800 hover:bg-red-600 border border-slate-600 hover:border-red-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-3">
+                <i class="fas fa-sign-out-alt"></i> خروج
+            </button>
+        </div>
+
+        <div class="flex-1 bg-slate-50 relative overflow-hidden flex flex-col">
+            
+            <div id="loginSection" class="absolute inset-0 flex items-center justify-center z-50 bg-slate-50/95 backdrop-blur-sm p-4">
+                <div class="bg-white p-10 rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md text-center transform hover:scale-[1.01] transition duration-300">
+                    <div class="mb-8">
+                        <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-fingerprint text-4xl text-blue-600"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-slate-800 mb-2">مرحباً بك</h2>
+                        <p class="text-slate-500">أدخل بياناتك للدخول للنظام</p>
+                    </div>
+                    <div class="space-y-5">
+                        <input type="text" id="loginCode" class="input-field text-center text-lg" placeholder="الرمز الوظيفي (مثال: E001)">
+                        <input type="number" id="loginFP" class="input-field text-center text-lg" placeholder="رقم البصمة">
+                        <button onclick="performLogin()" id="btnLogin" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition flex items-center justify-center gap-2">
+                            <span>دخول</span> <i class="fas fa-arrow-left"></i>
+                        </button>
+                    </div>
+                    <p id="loginMsg" class="text-red-500 text-sm font-bold mt-6 min-h-[24px]"></p>
+                </div>
+            </div>
+
+            <div id="dashboardSection" class="hidden p-8 overflow-y-auto h-full">
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                    <div onclick="openBulkForm('fine')" id="btnFine" class="hidden cursor-pointer bg-white border-b-4 border-red-500 p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-3 bg-red-50 rounded-xl text-red-500"><i class="fas fa-gavel text-3xl"></i></div>
+                        </div>
+                        <h3 class="font-bold text-xl text-slate-800">غرامات</h3>
+                        <p class="text-sm text-slate-400 mt-1">عقوبات وتنبيهات</p>
+                    </div>
+
+                    <div onclick="openBulkForm('bonus')" id="btnBonus" class="hidden cursor-pointer bg-white border-b-4 border-emerald-500 p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-3 bg-emerald-50 rounded-xl text-emerald-500"><i class="fas fa-gift text-3xl"></i></div>
+                        </div>
+                        <h3 class="font-bold text-xl text-slate-800">مكافآت</h3>
+                        <p class="text-sm text-slate-400 mt-1">حوافز وبشاشة</p>
+                    </div>
+
+                    <div onclick="openBulkForm('ratio')" id="btnRatio" class="hidden cursor-pointer bg-white border-b-4 border-purple-500 p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-3 bg-purple-50 rounded-xl text-purple-500"><i class="fas fa-chart-pie text-3xl"></i></div>
+                        </div>
+                        <h3 class="font-bold text-xl text-slate-800">النسب</h3>
+                        <p class="text-sm text-slate-400 mt-1">عمولات المبيعات</p>
+                    </div>
+                    
+                    <div onclick="openMyReceived()" class="cursor-pointer bg-white border-b-4 border-blue-500 p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-3 bg-blue-50 rounded-xl text-blue-500"><i class="fas fa-id-card text-3xl"></i></div>
+                        </div>
+                        <h3 class="font-bold text-xl text-slate-800">ملفي الشخصي</h3>
+                        <p class="text-sm text-slate-400 mt-1">الدوام والوارد</p>
+                    </div>
+
+                    <div onclick="openMyAdded()" class="cursor-pointer bg-white border-b-4 border-orange-500 p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-3 bg-orange-50 rounded-xl text-orange-500"><i class="fas fa-history text-3xl"></i></div>
+                        </div>
+                        <h3 class="font-bold text-xl text-slate-800">سجل إضافاتي</h3>
+                        <p class="text-sm text-slate-400 mt-1">مراجعة وتعديل</p>
+                    </div>
+
+                    <div onclick="openHRPortal()" id="btnHR" class="hidden cursor-pointer bg-slate-800 text-white p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition md:col-span-3 lg:col-span-2 flex items-center justify-center gap-6">
+                        <i class="fas fa-users-cog text-4xl"></i>
+                        <div>
+                            <h3 class="font-bold text-2xl">بوابة الموارد البشرية</h3>
+                            <p class="text-slate-400 text-sm mt-1">إدارة شاملة • تقارير • تعديل</p>
+                        </div>
+                    </div>
+                    
+                    <div onclick="openSettings()" id="btnAdmin" class="hidden cursor-pointer bg-slate-700 text-white p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition flex items-center justify-center gap-6">
+                        <i class="fas fa-tools text-4xl"></i>
+                        <div>
+                            <h3 class="font-bold text-2xl">الإعدادات</h3>
+                            <p class="text-slate-400 text-sm mt-1">إدارة المستخدمين والصلاحيات</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="bulkSection" class="hidden flex flex-col h-full p-6">
+                <div class="flex justify-between items-center mb-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-4">
+                        <button onclick="showDashboard()" class="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition">
+                            <i class="fas fa-arrow-right text-lg"></i>
+                        </button>
+                        <div>
+                            <h2 class="font-bold text-2xl text-slate-800" id="bulkTitle">...</h2>
+                            <p class="text-sm text-slate-500">إدخال بيانات متعددة وإرسالها</p>
+                        </div>
+                    </div>
+                    <button onclick="addRow()" class="btn btn-secondary text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100">
+                        <i class="fas fa-plus-circle"></i> إضافة صف جديد
+                    </button>
+                </div>
+                
+                <div class="flex-1 table-container overflow-y-auto">
+                    <table class="grid-table text-right" id="bulkTable">
+                        <thead>
+                            <tr>
+                                <th class="w-12 text-center">#</th>
+                                <th class="w-32">البصمة</th>
+                                <th class="min-w-[180px]">الاسم</th>
+                                <th class="w-40">النوع</th>
+                                <th class="w-32">المبلغ</th>
+                                <th class="min-w-[250px]">السبب</th>
+                                <th class="w-40 col-class">تصنيف عام</th>
+                                <th class="w-40 col-class">تصنيف خاص</th>
+                                <th class="w-48">الجروب المستهدف</th>
+                                <th class="w-48">وقت الإرسال</th>
+                                <th class="w-28 text-center">أدوات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gridBody"></tbody>
+                    </table>
+                    <div id="emptyState" class="hidden flex flex-col items-center justify-center h-64 text-slate-300">
+                        <i class="fas fa-file-signature text-6xl mb-4 opacity-20"></i>
+                        <p class="text-lg font-bold">القائمة فارغة</p>
+                        <p>ابدأ بإضافة صفوف جديدة</p>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex justify-end pt-4 border-t border-slate-200 bg-white p-4 rounded-b-2xl">
+                    <button id="btnSubmitBulk" onclick="submitBulk()" class="btn btn-primary text-lg px-8 py-3 shadow-lg">
+                        <span>حفظ وإرسال البيانات</span> <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="hrSection" class="hidden flex flex-col h-full p-6">
+                <div class="flex flex-col gap-4 mb-4">
+                    <div class="flex justify-between items-center bg-white p-3 rounded-2xl border shadow-sm">
+                        <div class="flex items-center gap-2">
+                            <button onclick="showDashboard()" class="btn btn-secondary"><i class="fas fa-home"></i> الرئيسية</button>
+                            <div class="h-8 w-px bg-slate-300 mx-3"></div>
+                            <button onclick="switchHRTab('objections')" id="tabObj" class="tab-btn active"><i class="fas fa-gavel"></i> الاعتراضات</button>
+                            <button onclick="switchHRTab('requests')" id="tabReq" class="tab-btn"><i class="fas fa-tasks"></i> طلبات التعديل</button>
+                            <button onclick="switchHRTab('monitoring')" id="tabMon" class="tab-btn"><i class="fas fa-eye"></i> المتابعة والفرز</button>
+                            <button onclick="switchHRTab('tracker')" id="tabTrack" class="tab-btn"><i class="fas fa-user-tag"></i> الملف الشامل</button>
+                        </div>
+                    </div>
+                    
+                    <div id="objFilters" class="hidden bg-white p-3 rounded-xl border shadow-sm flex gap-3 items-center">
+                        <span class="font-bold text-slate-600 text-sm ml-2"><i class="fas fa-filter"></i> تصفية الحالة:</span>
+                        <button onclick="filterObjections('all')" class="status-badge bg-slate-100 text-slate-600 hover:bg-slate-200">الكل</button>
+                        <button onclick="filterObjections('قيد المراجعة')" class="status-badge bg-amber-100 text-amber-700 hover:bg-amber-200">قيد المراجعة</button>
+                        <button onclick="filterObjections('مقبول')" class="status-badge bg-green-100 text-green-700 hover:bg-green-200">مقبول</button>
+                        <button onclick="filterObjections('مرفوض')" class="status-badge bg-red-100 text-red-700 hover:bg-red-200">مرفوض</button>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-xl border shadow-sm flex gap-3 items-center">
+                        <div class="relative flex-1 max-w-md">
+                            <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="tableSearch" onkeyup="searchTable()" placeholder="بحث سريع..." class="input-field pl-10 py-2">
+                        </div>
+                        <button onclick="printTable()" class="btn btn-secondary"><i class="fas fa-print"></i> طباعة</button>
+                        <button onclick="exportToExcel()" class="btn btn-secondary text-green-600 bg-green-50 border-green-200"><i class="fas fa-file-excel"></i> إكسل</button>
+                    </div>
+                </div>
+
+                <div class="flex-1 table-container relative overflow-y-auto">
+                    <div id="trackerInputDiv" class="hidden p-6 bg-slate-50 border-b flex gap-4 items-center justify-center">
+                        <input type="number" id="trackFP" class="input-field w-64 text-center text-lg font-bold" placeholder="أدخل رقم البصمة">
+                        <button onclick="loadEmployeeTracker()" class="btn btn-primary px-8">بحث شامل</button>
+                    </div>
+                    
+                    <table class="grid-table text-right" id="activeTable">
+                        <thead id="activeThead"></thead>
+                        <tbody id="activeTbody"></tbody>
+                    </table>
+                </div>
+                
+                <div id="monFilters" class="hidden mt-4 bg-white p-4 rounded-2xl border shadow-sm flex gap-4 items-end flex-wrap">
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">من تاريخ</label><input type="date" id="fDate1" class="input-field w-40"></div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">إلى تاريخ</label><input type="date" id="fDate2" class="input-field w-40"></div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">التصنيف الخاص (للتكرار)</label><select id="fClass" class="input-field w-56"><option value="">-- الكل --</option></select></div>
+                    <button onclick="applyMonFilter()" class="btn btn-primary">تطبيق الفلتر</button>
+                </div>
+            </div>
+            
+            <div id="settingsSection" class="hidden flex flex-col h-full p-6">
+                <div class="flex justify-between items-center mb-4 bg-white p-4 rounded-2xl shadow-sm border">
+                    <div class="flex items-center gap-3">
+                        <button onclick="showDashboard()" class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center hover:bg-slate-200"><i class="fas fa-arrow-right"></i></button>
+                        <h2 class="font-bold text-xl">إدارة الموظفين والصلاحيات</h2>
+                    </div>
+                    <button onclick="openAddUserModal()" class="btn btn-primary bg-green-600 hover:bg-green-700"><i class="fas fa-user-plus"></i> إضافة موظف</button>
+                </div>
+                <div class="flex-1 table-container overflow-y-auto">
+                    <table class="grid-table text-right" id="usersTable">
+                        <thead><tr><th>الرمز</th><th>البصمة</th><th>الاسم</th><th>القسم</th><th>غرامات</th><th>مكافآت</th><th>نسب</th><th>HR</th><th>Admin</th><th>إجراء</th></tr></thead>
+                        <tbody id="usersBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="userHistorySection" class="hidden flex flex-col h-full p-6">
+                <div class="flex justify-between items-center mb-4 bg-white p-4 rounded-2xl border shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <button onclick="showDashboard()" class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center"><i class="fas fa-arrow-right"></i></button>
+                        <h2 class="font-bold text-xl" id="historyTitle">...</h2>
+                    </div>
+                    <button onclick="printTable('historyTable')" class="btn btn-secondary"><i class="fas fa-print"></i> طباعة</button>
+                </div>
+                <div class="flex-1 table-container overflow-y-auto">
+                    <div id="attDiv" class="hidden mb-6 p-4 bg-blue-50 border-b border-blue-100">
+                        <h3 class="font-bold text-blue-800 mb-2 flex items-center gap-2"><i class="fas fa-clock"></i> سجل الدوام والحضور</h3>
+                        <table class="w-full text-sm text-right bg-white rounded-lg overflow-hidden border border-blue-100">
+                            <thead class="bg-blue-100 text-blue-900"><tr><th class="p-2">التاريخ</th><th>دخول</th><th>خروج</th><th>ساعات العمل</th></tr></thead>
+                            <tbody id="attBody"></tbody>
+                        </table>
+                    </div>
+                    <table class="grid-table text-right" id="historyTable">
+                        <thead id="historyThead"></thead>
+                        <tbody id="historyTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="uniModal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl w-full max-w-lg shadow-2xl transform transition-all scale-100 border border-slate-200">
+            <h3 id="mTitle" class="font-bold text-2xl mb-6 border-b pb-4 text-slate-800">...</h3>
+            <div id="mContent" class="space-y-5"></div>
+            <div class="flex justify-end gap-3 mt-8 pt-4 border-t border-slate-100">
+                <button onclick="closeModal()" class="px-6 py-2.5 text-slate-500 hover:bg-slate-100 rounded-xl font-bold text-sm transition">إلغاء</button>
+                <button id="mBtn" class="btn btn-primary py-2.5 px-8 shadow-lg">تنفيذ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-8 py-4 rounded-full shadow-2xl z-[110] flex items-center gap-4 transition-all duration-500 transform translate-y-10">
+        <i class="fas fa-info-circle text-blue-400 text-xl"></i> <span id="tMsg" class="font-bold"></span>
+    </div>
+
+    <script>
+        // URL الخاص بك (تأكد أنه V17)
+        const API_URL = "https://script.google.com/macros/s/AKfycbxQyZpiiEU9yjc7cax1gSceN6xV0HBzOYYEs35C_hqHKsgViQ0Gb1tCr_S2rUOlLJq4zQ/exec";
+        
+        let currentUser = null;
+        let currentMode = 'fine';
+        let detailsData = { mapping: {}, groups: [], followGroups: [] };
+        let tableDataCache = []; // للتخزين والفلترة
+
+        // --- AUTH ---
+        async function performLogin() {
+            const c = document.getElementById('loginCode').value.trim();
+            const f = document.getElementById('loginFP').value.trim();
+            const btn = document.getElementById('btnLogin');
+            
+            if(!c || !f) return showToast("يرجى إدخال البيانات كاملة", true);
+            
+            btn.innerHTML = '<span class="loader border-white border-t-transparent"></span> جاري التحقق...';
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "login", code: c, fp: f }) });
+                const data = await res.json();
+                
+                if(data.result === "success") {
+                    currentUser = data.data; 
+                    currentUser.fp = f;
+                    currentUser.code = c;
+                    
+                    document.getElementById('headerSubtitle').innerHTML = `${currentUser.name} | ${currentUser.section}`;
+                    document.getElementById('logoutBtn').classList.remove('hidden');
+                    
+                    setupPermissions();
+                    await loadDetails();
+                    
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('dashboardSection').classList.remove('hidden');
+                } else {
+                    document.getElementById('loginMsg').innerText = data.message;
+                }
+            } catch(e) { 
+                document.getElementById('loginMsg').innerText = "خطأ في الاتصال"; 
+            }
+            btn.innerHTML = 'دخول';
+            btn.disabled = false;
+        }
+
+        function setupPermissions() {
+            if(currentUser.perms.fine) document.getElementById('btnFine').classList.remove('hidden');
+            if(currentUser.perms.bonus) document.getElementById('btnBonus').classList.remove('hidden');
+            if(currentUser.perms.ratio) document.getElementById('btnRatio').classList.remove('hidden');
+            if(currentUser.perms.hr) document.getElementById('btnHR').classList.remove('hidden');
+            if(currentUser.perms.admin) document.getElementById('btnAdmin').classList.remove('hidden');
+        }
+
+        async function loadDetails() {
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "get_details" }) });
+                const data = await res.json();
+                if(data.result === "success") detailsData = data.data;
+            } catch(e) {}
+        }
+
+        // --- BULK FORM ---
+        function openBulkForm(mode) {
+            currentMode = mode;
+            hideAllSections();
+            document.getElementById('bulkSection').classList.remove('hidden');
+            
+            const titles = {fine: "إضافة غرامات وعقوبات", bonus: "إضافة مكافآت وحوافز", ratio: "إضافة نسب وعمولات"};
+            document.getElementById('bulkTitle').innerText = titles[mode];
+            
+            const showClass = (mode === 'fine');
+            document.querySelectorAll('.col-class').forEach(el => el.style.display = showClass ? 'table-cell' : 'none');
+            
+            document.getElementById('gridBody').innerHTML = "";
+            addRow(); 
+            checkEmptyState();
+        }
+
+        function addRow(cloneTr = null) {
+            const tbody = document.getElementById('gridBody');
+            const tr = document.createElement('tr');
+            const idx = tbody.children.length + 1;
+            
+            let typeHTML = '';
+            if(currentMode === 'fine') typeHTML = `<select class="input-field font-bold text-red-600 bg-red-50 type-input" onchange="validateRow(this)"><option value="غرامة">غرامة مالية</option><option value="تنبيه">تنبيه إداري (0)</option></select>`;
+            else if(currentMode === 'bonus') typeHTML = `<select class="input-field font-bold text-green-600 bg-green-50 type-input"><option value="تشجيعية">مكافأة تشجيعية</option><option value="بشاشة">بشاشة</option></select>`;
+            else typeHTML = `<input type="text" class="input-field font-bold text-purple-600 bg-purple-50 type-input" placeholder="النوع">`;
+
+            let targetType = currentMode === 'fine' ? 'غرامة' : (currentMode === 'bonus' ? 'مكافأة' : 'نسب');
+            let grpOpts = '<option value="">-- اختر --</option>';
+            detailsData.groups.forEach(g => {
+                if(g.type === targetType) grpOpts += `<option value="${g.id}">${g.name}</option>`;
+            });
+
+            const nowISO = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0,16);
+            const styleClass = (currentMode === 'fine') ? '' : 'display:none';
+
+            tr.innerHTML = `
+                <td class="text-center text-xs text-slate-400 font-mono">${idx}</td>
+                <td><input type="number" class="input-field fp-input" placeholder="123.." onchange="fetchName(this)"></td>
+                <td><input type="text" class="input-field name-input bg-slate-100 cursor-not-allowed" readonly tabindex="-1"></td>
+                <td>${typeHTML}</td>
+                <td><input type="number" class="input-field amount-input" placeholder="0" onchange="validateRow(this)"></td>
+                <td><input type="text" class="input-field reason-input" placeholder="السبب..."></td>
+                <td style="${styleClass}"><select class="input-field gen-input" onchange="fillSpe(this)"><option value="">عام</option></select></td>
+                <td style="${styleClass}"><select class="input-field spe-input"><option value="">خاص</option></select></td>
+                <td><select class="input-field grp-input">${grpOpts}</select></td>
+                <td><input type="datetime-local" class="input-field time-input" value="${nowISO}"></td>
+                <td class="text-center">
+                    <div class="flex justify-center gap-2">
+                        <button onclick="duplicateRow(this)" class="p-2 text-blue-500 hover:bg-blue-50 rounded" title="تكرار"><i class="fas fa-copy"></i></button>
+                        <button onclick="deleteRow(this)" class="p-2 text-red-500 hover:bg-red-50 rounded" title="حذف"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+
+            if(currentMode === 'fine') {
+                const gen = tr.querySelector('.gen-input');
+                Object.keys(detailsData.mapping).forEach(k => gen.innerHTML += `<option value="${k}">${k}</option>`);
+            }
+
+            // منطق التكرار (نسخ كل شيء ما عدا البصمة والاسم)
+            if(cloneTr) {
+                tr.querySelector('.type-input').value = cloneTr.querySelector('.type-input').value;
+                tr.querySelector('.amount-input').value = cloneTr.querySelector('.amount-input').value;
+                tr.querySelector('.reason-input').value = cloneTr.querySelector('.reason-input').value;
+                tr.querySelector('.grp-input').value = cloneTr.querySelector('.grp-input').value;
+                
+                if(currentMode === 'fine') {
+                    tr.querySelector('.gen-input').value = cloneTr.querySelector('.gen-input').value;
+                    fillSpe(tr.querySelector('.gen-input'));
+                    tr.querySelector('.spe-input').value = cloneTr.querySelector('.spe-input').value;
+                }
+                
+                // إفراغ البصمة والاسم والتركيز على البصمة
+                tr.querySelector('.fp-input').value = "";
+                tr.querySelector('.name-input').value = "";
+                tr.querySelector('.fp-input').focus();
+            }
+            checkEmptyState();
+        }
+
+        function duplicateRow(btn) { addRow(btn.closest('tr')); }
+        function deleteRow(btn) { btn.closest('tr').remove(); checkEmptyState(); }
+        function checkEmptyState() { document.getElementById('emptyState').classList.toggle('hidden', document.querySelectorAll('#gridBody tr').length > 0); }
+
+        function fillSpe(gen) {
+            const spe = gen.closest('tr').querySelector('.spe-input');
+            spe.innerHTML = '<option value="">خاص</option>';
+            if(gen.value && detailsData.mapping[gen.value]) {
+                detailsData.mapping[gen.value].forEach(s => spe.innerHTML += `<option value="${s}">${s}</option>`);
+            }
+        }
+
+        async function fetchName(inp) {
+            if(!inp.value) return;
+            const row = inp.closest('tr');
+            const ni = row.querySelector('.name-input');
+            ni.value = "...";
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "get_emp_info", fp: inp.value }) });
+                const data = await res.json();
+                if(data.result === "success") {
+                    ni.value = data.data.name;
+                    row.dataset.section = data.data.section;
+                    ni.classList.add('text-green-600', 'font-bold');
+                } else {
+                    ni.value = "غير موجود";
+                    ni.classList.add('text-red-500');
+                }
+            } catch(e) { ni.value = "خطأ"; }
+        }
+
+        function validateRow(inp) {
+            if(currentMode !== 'fine') return;
+            const row = inp.closest('tr');
+            const t = row.querySelector('.type-input').value;
+            const a = row.querySelector('.amount-input');
+            if(t === 'تنبيه') { 
+                a.value = 0; a.disabled = true; a.classList.add('bg-slate-100');
+            } else { 
+                a.disabled = false; a.classList.remove('bg-slate-100');
+                if(t === 'غرامة' && (parseFloat(a.value) < 1000 && parseFloat(a.value) !== 0)) a.classList.add('error');
+                else a.classList.remove('error');
+            }
+        }
+
+        async function submitBulk() {
+            const rows = [];
+            let err = "";
+            const trs = document.querySelectorAll('#gridBody tr');
+            
+            if(trs.length === 0) return showToast("القائمة فارغة", true);
+
+            trs.forEach((tr, i) => {
+                const fp = tr.querySelector('.fp-input').value;
+                const grp = tr.querySelector('.grp-input').value;
+                const amt = parseFloat(tr.querySelector('.amount-input').value)||0;
+                const type = tr.querySelector('.type-input').value;
+                
+                if(!fp) err = `سطر ${i+1}: البصمة مفقودة`;
+                else if(!grp) err = `سطر ${i+1}: الجروب مفقود`;
+                else if(currentMode === 'fine' && type === 'غرامة' && amt < 1000) err = `سطر ${i+1}: الغرامة خطأ`;
+
+                rows.push({
+                    fp: fp,
+                    name: tr.querySelector('.name-input').value,
+                    section: tr.dataset.section||'',
+                    type: type,
+                    amount: amt,
+                    reason: tr.querySelector('.reason-input').value,
+                    genClass: currentMode==='fine' ? tr.querySelector('.gen-input').value : '',
+                    speClass: currentMode==='fine' ? tr.querySelector('.spe-input').value : '',
+                    groupID: grp,
+                    groupName: tr.querySelector('.grp-input').selectedOptions[0]?.text || '',
+                    sendTime: tr.querySelector('.time-input').value,
+                    dueDate: tr.querySelector('.time-input').value.split('T')[0]
+                });
+            });
+
+            if(err) return showToast(err, true);
+
+            const btn = document.getElementById('btnSubmitBulk');
+            btn.innerHTML = '<span class="loader border-white border-t-transparent"></span> جاري الإرسال...';
+            btn.disabled = true;
+            
+            try {
+                await fetch(API_URL, { method: 'POST', body: JSON.stringify({ 
+                    action: "save_bulk", mode: currentMode, rows: rows, addedBy: currentUser.name 
+                }) });
+                showToast("تم الحفظ والإرسال");
+                openBulkForm(currentMode);
+            } catch(e) { showToast("حدث خطأ", true); }
+            
+            btn.innerHTML = '<span>حفظ وإرسال البيانات</span> <i class="fas fa-paper-plane"></i>';
+            btn.disabled = false;
+        }
+
+        // --- HR PORTAL ---
+        function openHRPortal() { hideAllSections(); document.getElementById('hrSection').classList.remove('hidden'); switchHRTab('objections'); }
+        function switchHRTab(t) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('monFilters').classList.add('hidden');
+            document.getElementById('trackerInputDiv').classList.add('hidden');
+            document.getElementById('objFilters').classList.add('hidden');
+            
+            const th = document.getElementById('activeThead');
+            const tb = document.getElementById('activeTbody');
+            tb.innerHTML = '<tr><td colspan="100%" class="text-center p-10"><span class="loader"></span></td></tr>';
+            
+            if(t === 'objections') {
+                document.getElementById('tabObj').classList.add('active');
+                document.getElementById('objFilters').classList.remove('hidden');
+                th.innerHTML = `<tr><th>الموظف</th><th>البيانات</th><th>سبب الاعتراض</th><th>الإثبات</th><th>الإجراء</th></tr>`;
+                loadHRObjections();
+            } else if(t === 'tracker') {
+                document.getElementById('tabTrack').classList.add('active');
+                document.getElementById('trackerInputDiv').classList.remove('hidden');
+                th.innerHTML = `<tr><th>النوع</th><th>التفاصيل</th><th>التاريخ</th><th>الحالة</th></tr>`;
+                tb.innerHTML = '<tr><td colspan="100%" class="text-center p-6">أدخل البصمة للبحث</td></tr>';
+            } else if(t === 'requests') {
+                document.getElementById('tabReq').classList.add('active');
+                th.innerHTML = `<tr><th>الطلب</th><th>المرسل</th><th>نوع</th><th>الأصل</th><th>التعديل</th><th>الحالة</th><th>إجراء</th></tr>`;
+                loadEditRequests();
+            } else {
+                document.getElementById('tabMon').classList.add('active');
+                document.getElementById('monFilters').classList.remove('hidden');
+                th.innerHTML = `<tr><th>الموظف</th><th>النوع</th><th>التفاصيل</th><th>التكرار</th><th>متابعة</th><th>تعديل</th></tr>`;
+                loadMonitoring();
+            }
+        }
+
+        async function loadHRObjections() {
+            const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "get_hr_monitoring" }) });
+            const d = await r.json();
+            // تصفية فقط من لديه اعتراض
+            tableDataCache = d.data.rows.filter(x => x.objStatus && x.objStatus !== "");
+            filterObjections('all'); // عرض الكل
+        }
+
+        function filterObjections(status) {
+            const data = status === 'all' ? tableDataCache : tableDataCache.filter(x => x.objStatus === status);
+            renderTable(data, 'objections');
+        }
+
+        async function loadEditRequests() { const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "get_edit_requests" }) }); const d = await r.json(); renderTable(d.data, 'requests'); }
+        async function loadMonitoring() { const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "get_hr_monitoring" }) }); const d = await r.json(); tableDataCache = d.data.rows; renderTable(d.data.rows, 'monitoring'); 
+            const sel = document.getElementById('fClass'); sel.innerHTML = '<option value="">الكل</option>'; const s = new Set(); d.data.rows.forEach(r=>r.speClass?s.add(r.speClass):null); s.forEach(x=>sel.innerHTML+=`<option value="${x}">${x}</option>`);
+        }
+        async function loadEmployeeTracker() {
+            const fp = document.getElementById('trackFP').value; if(!fp) return;
+            const tb = document.getElementById('activeTbody'); tb.innerHTML = '<tr><td colspan="100%" class="text-center p-10"><span class="loader"></span></td></tr>';
+            const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "get_emp_full_profile", searchFP: fp }) }); const d = await r.json();
+            tb.innerHTML = ""; 
+            if(d.data.attendance.length > 0) tb.innerHTML += `<tr class="bg-blue-50"><td colspan="4" class="font-bold p-3 text-blue-800 text-center">سجل الدوام: ${d.data.attendance.length} يوم</td></tr>`;
+            if(d.data.transactions.length === 0) { tb.innerHTML += '<tr><td colspan="4" class="text-center">لا توجد سجلات</td></tr>'; return; }
+            d.data.transactions.forEach(x => { tb.innerHTML += `<tr><td>${x.type}<br><span class="text-xs">${x.sheetType}</span></td><td>${x.amount}<br>${x.reason}</td><td>${x.date}</td><td>${x.status}</td></tr>`; });
+        }
+
+        function renderTable(data, type) {
+            const tb = document.getElementById('activeTbody'); tb.innerHTML = "";
+            if(!data.length) { tb.innerHTML = '<tr><td colspan="100%" class="text-center p-6 text-slate-400">لا توجد بيانات</td></tr>'; return; }
+
+            if(type === 'objections') {
+                data.forEach(x => {
+                    const img = x.objImg ? `<a href="${x.objImg}" target="_blank" class="text-blue-600 text-xs font-bold bg-blue-50 px-2 py-1 rounded">📷 عرض</a>` : '-';
+                    tb.innerHTML += `<tr><td><b>${x.name}</b></td><td>${x.type}<br>${x.amount}</td><td class="bg-amber-50 p-2 text-xs border-r-4 border-amber-400">${x.objReason}</td><td class="text-center">${img}</td><td class="text-center"><button onclick="hrAction('${x.id}','${x.sheetType}')" class="btn btn-primary py-1 px-3 text-xs">قرار</button></td></tr>`;
+                });
+            } else if(type === 'requests') {
+                data.forEach(r => {
+                    const btn = r.status === 'قيد الانتظار' ? `<button onclick="editAction('${r.reqId}')" class="text-white bg-purple-600 px-2 py-1 rounded text-xs">معالجة</button>` : r.status;
+                    tb.innerHTML += `<tr><td class="text-xs font-mono">${r.reqId}</td><td>${r.requester}</td><td><span class="font-bold text-blue-600">${r.type}</span></td><td class="text-xs text-gray-500">${r.original}</td><td class="text-xs bg-blue-50 p-1">${r.reason}</td><td>${r.status}</td><td class="text-center">${btn}</td></tr>`;
+                });
+            } else if(type === 'monitoring') {
+                const cnt = {}; data.forEach(x => { if(x.speClass) cnt[`${x.fp}_${x.speClass}`] = (cnt[`${x.fp}_${x.speClass}`]||0)+1; });
+                data.forEach(x => {
+                    const rep = x.speClass && cnt[`${x.fp}_${x.speClass}`]>1 ? `<span class="bg-red-100 text-red-700 px-2 rounded text-xs font-bold">${cnt[`${x.fp}_${x.speClass}`]} مرات</span>` : '-';
+                    const fBtn = x.isFollowed==='نعم' ? '✅' : `<button onclick="confFollow('${x.id}','${x.sheetType}')" class="text-blue-600 border px-2 rounded text-xs">تأكيد</button>`;
+                    tb.innerHTML += `<tr><td><b>${x.name}</b></td><td>${x.type}<br>${x.amount}</td><td class="text-xs">${x.reason}<br>${x.speClass||''}</td><td class="text-center">${rep}</td><td class="text-center">${fBtn}</td><td class="text-center"><button onclick="directEdit('${x.id}','${x.sheetType}')" class="text-orange-500"><i class="fas fa-edit"></i></button></td></tr>`;
+                });
+            }
+        }
+
+        // --- ACTIONS ---
+        function hrAction(id, st) {
+            let opts = '<option value="">-- اختر --</option>'; detailsData.followGroups.forEach(g => opts += `<option value="${g.id}">${g.name}</option>`);
+            showModal("قرار إداري", `
+                <select id="aSt" class="input-field mb-2 font-bold" onchange="document.getElementById('gDiv').classList.toggle('hidden', this.value!=='متابعة')">
+                    <option value="">القرار...</option><option value="مقبول">مقبول</option><option value="مرفوض">مرفوض</option><option value="متابعة">متابعة</option>
+                </select>
+                <div id="gDiv" class="hidden mb-2 bg-amber-50 p-2 rounded"><select id="aGrp" class="input-field">${opts}</select></div>
+                <textarea id="aRes" class="input-field h-24" placeholder="الرد..."></textarea>
+            `, async () => {
+                const s=document.getElementById('aSt').value, g=document.getElementById('aGrp').value;
+                if(s==='متابعة' && !g) return alert("اختر الجروب");
+                await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "hr_action", id, sheetType: st, status: s, response: document.getElementById('aRes').value, hrUser: currentUser.name, followGroupId: g }) });
+                closeModal(); switchHRTab('objections'); showToast("تم");
+            });
+        }
+        function editAction(reqId) {
+            showModal("معالجة الطلب", `<select id="eSt" class="input-field mb-2"><option value="تم التنفيذ">موافقة وتنفيذ</option><option value="مرفوض">رفض</option></select><textarea id="eNt" class="input-field" placeholder="ملاحظات"></textarea>`, async () => {
+                await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "hr_edit_action", reqId, status: document.getElementById('eSt').value, notes: document.getElementById('eNt').value }) });
+                closeModal(); switchHRTab('requests'); showToast("تم");
+            });
+        }
+        function directEdit(id, st) {
+            showModal("تعديل مباشر", `<input id="eAmt" class="input-field mb-2" placeholder="مبلغ جديد"><input id="eRea" class="input-field" placeholder="سبب جديد">`, async () => {
+                await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "update_transaction_direct", id, sheetType: st, newAmount: document.getElementById('eAmt').value, newReason: document.getElementById('eRea').value }) });
+                closeModal(); switchHRTab('monitoring'); showToast("تم");
+            });
+        }
+        function confFollow(id, st) { if(confirm("تأكيد؟")) fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "confirm_followup", id, sheetType: st }) }).then(() => switchHRTab('monitoring')); }
+        function applyMonFilter() { const d1=document.getElementById('fDate1').value, d2=document.getElementById('fDate2').value, c=document.getElementById('fClass').value; renderTable(tableDataCache.filter(x => (!d1||x.date>=d1)&&(!d2||x.date<=d2)&&(!c||x.speClass===c)), 'monitoring'); }
+
+        // --- SETTINGS ---
+        function openSettings() { hideAllSections(); document.getElementById('settingsSection').classList.remove('hidden'); loadUsers(); }
+        async function loadUsers() {
+            const tb = document.getElementById('usersBody'); tb.innerHTML = '<tr><td colspan="10" class="text-center"><span class="loader"></span></td></tr>';
+            const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "manage_users", subAction: "get_all" }) }); const d = await r.json();
+            tb.innerHTML = ""; d.data.forEach(u => tb.innerHTML += `<tr><td>${u.code}</td><td>${u.fp}</td><td>${u.name}</td><td>${u.sec}</td><td>${u.pFine}</td><td>${u.pBonus}</td><td>${u.pRatio}</td><td>${u.pHR}</td><td>${u.pAdmin}</td><td><button onclick="delUser('${u.row}')" class="text-red-500"><i class="fas fa-trash"></i></button></td></tr>`);
+        }
+        function openAddUserModal() {
+            showModal("إضافة موظف", `<input id="uCode" class="input-field mb-2" placeholder="الرمز"><input id="uFp" class="input-field mb-2" placeholder="البصمة"><input id="uName" class="input-field mb-2" placeholder="الاسم"><input id="uSec" class="input-field mb-2" placeholder="القسم"><div class="grid grid-cols-2 gap-2 text-xs"><label><input type="checkbox" id="pF"> غرامات</label><label><input type="checkbox" id="pB"> مكافآت</label><label><input type="checkbox" id="pR"> نسب</label><label><input type="checkbox" id="pH"> HR</label><label><input type="checkbox" id="pA"> Admin</label></div>`, async () => {
+                const d = { code: document.getElementById('uCode').value, fp: document.getElementById('uFp').value, name: document.getElementById('uName').value, sec: document.getElementById('uSec').value, pFine: document.getElementById('pF').checked?'نعم':'لا', pBonus: document.getElementById('pB').checked?'نعم':'لا', pRatio: document.getElementById('pR').checked?'نعم':'لا', pHR: document.getElementById('pH').checked?'نعم':'لا', pAdmin: document.getElementById('pA').checked?'نعم':'لا' };
+                await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "manage_users", subAction: "add", userData: d }) });
+                closeModal(); loadUsers(); showToast("تم");
+            });
+        }
+        async function delUser(r) { if(confirm("حذف؟")) { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "manage_users", subAction: "delete", row: r }) }); loadUsers(); } }
+
+        // --- HISTORY ---
+        async function openMyReceived() { loadHist('received', 'سجلي الشخصي'); }
+        async function openMyAdded() { loadHist('added', 'سجل إضافاتي'); }
+        async function loadHist(m, t) {
+            hideAllSections(); document.getElementById('userHistorySection').classList.remove('hidden'); document.getElementById('historyTitle').innerText = t;
+            const tb = document.getElementById('historyTbody'); tb.innerHTML = '<tr><td colspan="100%" class="text-center p-10"><span class="loader"></span></td></tr>';
+            document.getElementById('historyThead').innerHTML = m==='received'?`<tr><th>النوع</th><th>المبلغ</th><th>السبب</th><th>التاريخ</th><th>الحالة</th><th>إجراء</th></tr>`:`<tr><th>الموظف</th><th>النوع</th><th>المبلغ</th><th>التاريخ</th><th>إجراء</th></tr>`;
+            
+            if(m === 'received') {
+                const rA = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "get_my_attendance", fp: currentUser.fp }) }); const dA = await rA.json();
+                if(dA.data.length > 0) {
+                    document.getElementById('attDiv').classList.remove('hidden'); document.getElementById('attBody').innerHTML = "";
+                    dA.data.forEach(a => document.getElementById('attBody').innerHTML += `<tr><td>${a.date}</td><td>${a.in}</td><td>${a.out}</td><td>${a.dur}</td></tr>`);
+                } else document.getElementById('attDiv').classList.add('hidden');
+            } else document.getElementById('attDiv').classList.add('hidden');
+
+            const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(m==='received'?{ action: "get_my_received", fp: currentUser.fp }:{ action: "get_my_added", userName: currentUser.name }) }); const d = await r.json();
+            tb.innerHTML = ""; d.data.forEach(x => {
+                if(m==='received') tb.innerHTML += `<tr><td>${x.type}</td><td>${x.amount}</td><td>${x.reason}</td><td>${x.date}</td><td><span class="bg-slate-100 px-2 rounded">${x.objStatus}</span></td><td><button onclick="objModal('${x.id}','${x.sheetType}')" class="text-blue-600 underline font-bold">اعتراض</button></td></tr>`;
+                else tb.innerHTML += `<tr><td>${x.name}</td><td>${x.type}</td><td>${x.amount}</td><td>${x.date}</td><td><button onclick="reqModal('${x.id}','${x.sheetType}')" class="text-orange-500 underline">تعديل</button></td></tr>`;
+            });
+        }
+
+        function objModal(id, st) { showModal("اعتراض", `<textarea id="oRes" class="input-field mb-2 h-20" placeholder="السبب"></textarea><input type="file" id="oFile">`, async () => { const f=document.getElementById('oFile').files[0]; let b64=f?await toBase64(f):null; await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "submit_objection", id, sheetType: st, reason: document.getElementById('oRes').value, imageBase64: b64 }) }); closeModal(); showToast("تم"); }); }
+        function reqModal(id, st) { showModal("تعديل", `<select id="rTyp" class="input-field mb-2"><option value="تعديل">تعديل</option><option value="حذف">حذف</option></select><textarea id="rRes" class="input-field" placeholder="التفاصيل"></textarea>`, async () => { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "request_edit", id, sheetType: st, reqType: document.getElementById('rTyp').value, reason: document.getElementById('rRes').value, requester: currentUser.name }) }); closeModal(); showToast("تم"); }); }
+
+        // --- UTILS ---
+        function hideAllSections() { ['loginSection', 'dashboardSection', 'bulkSection', 'hrSection', 'userHistorySection', 'settingsSection'].forEach(id => document.getElementById(id).classList.add('hidden')); }
+        function showDashboard() { hideAllSections(); document.getElementById('dashboardSection').classList.remove('hidden'); }
+        function logout() { location.reload(); }
+        function showToast(m, e=false) { const t=document.getElementById('toast'); document.getElementById('tMsg').innerText=m; t.classList.remove('hidden'); t.classList.add(e?'bg-red-600':'bg-slate-800'); setTimeout(()=>t.classList.add('hidden'), 3000); }
+        function showModal(t, c, cb) { document.getElementById('mTitle').innerText=t; document.getElementById('mContent').innerHTML=c; document.getElementById('uniModal').classList.remove('hidden'); document.getElementById('mBtn').onclick=async()=>{const b=document.getElementById('mBtn');b.innerText='...';await cb();b.innerText='تنفيذ';}; }
+        function closeModal() { document.getElementById('uniModal').classList.add('hidden'); }
+        const toBase64 = f => new Promise((r, j) => { const rd = new FileReader(); rd.readAsDataURL(f); rd.onload = () => r(rd.result); rd.onerror = j; });
+        function printTable() { const w=window.open(); w.document.write(`<html><body dir="rtl">${document.getElementById('activeTable').outerHTML || document.getElementById('historyTable').outerHTML}</body></html>`); w.print(); w.close(); }
+        function exportToExcel() { XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById('activeTable') || document.getElementById('historyTable')), 'Report.xlsx'); }
+        function searchTable() { const q=document.getElementById('tableSearch').value.toLowerCase(); document.querySelectorAll('#activeTbody tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(q)?'':'none'); }
+        document.getElementById('loginFP').addEventListener('keypress', e => { if(e.key === 'Enter') performLogin(); });
+    </script>
+</body>
+</html>
